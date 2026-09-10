@@ -36,7 +36,7 @@ int main()
         dados->vetor[i] = 4;
     }
 
-    int chunk = TAM_VETOR / NUM_FILHOS;
+    int fatia = TAM_VETOR / NUM_FILHOS;
 
     for (int i = 0; i < NUM_FILHOS; i++) {
         pid_t pid_filho = fork();
@@ -51,8 +51,8 @@ int main()
             struct timespec start, end;
             clock_gettime(CLOCK_MONOTONIC, &start);
 
-            int inicio = i * chunk;
-            int fim = (i == NUM_FILHOS - 1) ? TAM_VETOR : (i + 1) * chunk;
+            int inicio = i * fatia;
+            int fim = (i == NUM_FILHOS - 1) ? TAM_VETOR : (i + 1) * fatia;
 
             for (int j = inicio; j < fim; j++)
             {
@@ -60,8 +60,7 @@ int main()
             }
 
             clock_gettime(CLOCK_MONOTONIC, &end);
-            dados->tempos_filhos[i] = (end.tv_sec - start.tv_sec) + 
-                                      (end.tv_nsec - start.tv_nsec) / 1e9;
+            dados->tempos_filhos[i] = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0;
             exit(0); 
         }
     }

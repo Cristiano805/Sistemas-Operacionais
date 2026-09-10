@@ -1,18 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <sys/mman.h>
+#include <pthread.h>
 #include <stdbool.h>
 #include <time.h>
 
 #define TAM_VETOR 10000
-#define NUM_FILHOS 8
+#define NUM_THREADS 8 
 
-typedef struct {
-    int vetor[TAM_VETOR];
-    double tempos_filhos[NUM_FILHOS];
-} DadosCompartilhados;
+int vetor[TAM_VETOR];
+double tempo_threads[NUM_THREADS];
 
 bool verificaPos(int *vet, int tamanho) {
     if (tamanho <= 1) return true;
@@ -23,65 +19,54 @@ bool verificaPos(int *vet, int tamanho) {
     return true;
 }
 
-int main()
-{
-    DadosCompartilhados *dados = mmap(NULL, sizeof(DadosCompartilhados), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+void* trabalhador(void* arg) {
+    int id = *(int*)arg; // id da thread
+    struct timespec start, end;
 
-    if (dados == MAP_FAILED) {
-        perror("Erro ao alocar memória compartilhada");
-        return 1;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    for (int j = 0; j < TAM_VETOR; j++) {
+        vetor[j] = (vetor[j] * 2) + 2;
     }
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    
+    tempo_threads[id] = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1000000000.0;
+                         
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t threads[NUM_THREADS];
+    int ids[NUM_THREADS];
 
     for (int i = 0; i < TAM_VETOR; i++) {
-        dados->vetor[i] = 4;
+        vetor[i] = 4;
     }
 
-    int chunk = TAM_VETOR / NUM_FILHOS;
-
-    for (int i = 0; i < NUM_FILHOS; i++) {
-        pid_t pid_filho = fork();
-
-        if (pid_filho < 0) {
-            perror("Erro ao criar processo");
-            exit(1);
-        }
-
-        if (pid_filho == 0)
-        {
-            struct timespec start, end;
-            clock_gettime(CLOCK_MONOTONIC, &start);
-
-            int inicio = i * chunk;
-            int fim = (i == NUM_FILHOS - 1) ? TAM_VETOR : (i + 1) * chunk;
-
-            for (int j = inicio; j < fim; j++)
-            {
-                dados->vetor[j] = (dados->vetor[j] * 2) + 2;
-            }
-
-            clock_gettime(CLOCK_MONOTONIC, &end);
-            dados->tempos_filhos[i] = (end.tv_sec - start.tv_sec) + 
-                                      (end.tv_nsec - start.tv_nsec) / 1e9;
-            exit(0); 
+    for (int i = 0; i < NUM_THREADS; i++) {
+        ids[i] = i;
+        if (pthread_create(&threads[i], NULL, trabalhador, &ids[i]) != 0) {
+            perror("Erro ao criar thread");
+            return 1;
         }
     }
 
-    for (int i = 0; i < NUM_FILHOS; i++) {
-        wait(NULL);
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
     }
 
-    bool iguais = verificaPos(dados->vetor, TAM_VETOR);
+    bool iguais = verificaPos(vetor, TAM_VETOR);
     if (iguais) {
-        printf("Verificacao automatica: Todas as posicoes do vetor sao iguais a %d.\n", dados->vetor[0]);
+        printf("Verificacao: Sucesso! Todas as posicoes sao iguais a %d.\n", vetor[0]);
     } else {
-        printf("Verificacao automatica: As posicoes possuem valores diferentes.\n");
+        printf("Verificacao: Falha! Ocorreu inconsistencia nos dados (Condicao de Corrida).\n");
     }
 
-    printf("\nTempos de execucao individuais (excluindo fork/wait):\n");
-    for (int i = 0; i < NUM_FILHOS; i++) {
-        printf("Filho %d: %.9f segundos\n", i, dados->tempos_filhos[i]);
+    printf("\nTempos de execucao puros (excluindo criacao/termino):\n");
+    for (int i = 0; i < NUM_THREADS; i++) {
+        printf("Thread %d: %.9f segundos\n", i, tempo_threads[i]);
     }
 
-    munmap(dados, sizeof(DadosCompartilhados));
     return 0;
 }

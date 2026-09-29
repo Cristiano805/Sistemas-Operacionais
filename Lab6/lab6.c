@@ -3,6 +3,7 @@
 #include <signal.h>
 #include <sys/sem.h>
 #include <pthread.h>
+#include <semaphore.h> 
 
 #define TAM 10000
 #define NUM_THREADS 100
@@ -41,5 +42,9 @@ int main(){
         ids_tarefas[i] = i + 1;
         pthread_create(&threads[i], NULL, rotina_da_tarefa, &ids_tarefas[i]);
     }
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
 
+    return 0;
 } 

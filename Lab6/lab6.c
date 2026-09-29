@@ -27,9 +27,7 @@
         } 
         else{
             vetor[i] = vetor[i] - id_tarefa;
-        } 
-        }
-
+        }}
         pthread_exit(NULL);
     }
 
@@ -52,7 +50,7 @@
               // VERIFICAÇÃO DE ERROS DE CONCORRÊNCIA
              // Gabarito 60: Valor inicial 10 + 50 (saldo de 50 pares de tarefas onde -ímpar +par resulta em +1).
             // Qualquer valor diferente de 60 indica perda de cálculos devido à condição de corrida na memória.
-                erros++;
+            erros++;
             }
         }
         

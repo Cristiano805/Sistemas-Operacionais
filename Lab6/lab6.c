@@ -59,5 +59,5 @@
         printf("Verificacao concluida!\n");
         printf("Total de posicoes com erro de concorrencia: %d de %d\n", erros, TAM);
 
-            return 0;
+        return 0;
     } 

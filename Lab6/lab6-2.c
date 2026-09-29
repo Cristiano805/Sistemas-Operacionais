@@ -9,6 +9,7 @@
     #define NUM_THREADS 100
 
     int vetor[TAM];
+    sem_t semaforo;
 
     void inicializaVetor(){
         int i = 0;
@@ -20,7 +21,7 @@
 
     void* rotina_da_tarefa(void *arg){
         int id_tarefa = *(int *)arg;
-        
+        sem_wait(&semaforo);
         for (int i = 0; i < TAM; i++) {
         if(id_tarefa % 2 == 0){
             vetor[i] = vetor[i] + id_tarefa;
@@ -28,6 +29,7 @@
         else{
             vetor[i] = vetor[i] - id_tarefa;
         }}
+        sem_post(&semaforo);
         pthread_exit(NULL);
     }
 
@@ -35,7 +37,7 @@
         pthread_t threads[NUM_THREADS];
         int ids_tarefas[NUM_THREADS];
         inicializaVetor();
-
+        sem_init(&semaforo, 0, 1);
         for(int i = 0; i < NUM_THREADS; i++) {
             ids_tarefas[i] = i + 1;
             pthread_create(&threads[i], NULL, rotina_da_tarefa, &ids_tarefas[i]);
@@ -56,6 +58,6 @@
         
         printf("Verificacao concluida!\n");
         printf("Total de posicoes com erro de concorrencia: %d de %d\n", erros, TAM);
-
+        sem_destroy(&semaforo);
         return 0;
-    } 
+    }
